@@ -1,0 +1,3464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>临床八班智能课表 2026-2027(1)</title>
+<style>
+  :root {
+    --primary: #1a73e8;
+    --primary-dark: #1557b0;
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --text: #1f2937;
+    --text-light: #6b7280;
+    --border: #e5e7eb;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 { font-size: 1.25rem; font-weight: 700; }
+  .header-sub { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
+
+  /* Group Toggle */
+  .group-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .group-btn {
+    padding: 5px 14px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .group-btn.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  /* Week Navigation */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+  }
+  .week-btn {
+    width: 34px; height: 34px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--primary);
+    transition: all 0.15s;
+  }
+  .week-btn:active { transform: scale(0.95); background: #f3f4f6; }
+  .week-info { text-align: center; flex: 1; }
+  .week-num { font-size: 0.9rem; font-weight: 700; }
+  .week-range { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; }
+  .today-btn {
+    padding: 5px 12px;
+    border: 1px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .today-btn:active { background: var(--primary); color: white; }
+
+  /* Week Quick Select */
+  .week-quick-select {
+    margin: 0 8px;
+  }
+  .week-quick-select select {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    background: white;
+    cursor: pointer;
+    outline: none;
+    min-width: 80px;
+  }
+  .week-quick-select select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+  }
+
+  /* Stats Bar */
+  .stats-bar {
+    display: flex;
+    gap: 14px;
+    padding: 8px 24px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-theory { background: #991b1b; }
+  .dot-practice { background: #4b5563; }
+  .dot-custom { background: #d97706; }
+
+  /* Schedule Container */
+  .schedule-container {
+    padding: 12px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100vh - 160px);
+  }
+
+  /* Schedule Table */
+  .schedule-table-wrapper {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    background: white;
+  }
+  .schedule-table {
+    width: 100%;
+    min-width: 880px;
+    border-collapse: collapse;
+    background: white;
+  }
+  .schedule-table th,
+  .schedule-table td {
+    border: 1px solid var(--border);
+    padding: 0;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .schedule-table thead th {
+    background: #f1f5f9;
+    padding: 12px 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+    border-bottom: 2px solid #d1d5db;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* Period Cell */
+  .period-cell {
+    width: 80px;
+    min-width: 80px;
+    background: #fafbfc;
+    padding: 6px 4px;
+  }
+  .period-num {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #374151;
+    line-height: 1.2;
+  }
+  .period-time {
+    font-size: 0.6rem;
+    color: #9ca3af;
+    line-height: 1.4;
+  }
+
+  /* Course Cell */
+  .course-cell {
+    padding: 3px;
+  }
+
+  /* Course Block */
+  .course-block {
+    position: relative;
+    border-radius: 6px;
+    padding: 8px 6px;
+    color: white;
+    text-align: center;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+    word-break: break-all;
+    overflow: hidden;
+  }
+  .course-block:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .course-block.theory {
+    background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  }
+  .course-block.practice {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  }
+  .course-block.custom {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+
+  .course-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .course-detail {
+    font-size: 0.6rem;
+    opacity: 0.9;
+    line-height: 1.3;
+  }
+  .course-location {
+    font-size: 0.6rem;
+    opacity: 0.85;
+    line-height: 1.3;
+  }
+  .course-teacher {
+    font-size: 0.6rem;
+    opacity: 0.85;
+  }
+  .course-time-display {
+    font-size: 0.55rem;
+    opacity: 0.75;
+    margin-top: 1px;
+  }
+
+  /* Empty Cell */
+  .empty-cell {
+    min-height: 24px;
+  }
+
+  /* Delete button for custom courses */
+  .delete-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px; height: 16px;
+    background: rgba(255,255,255,0.3);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    z-index: 8;
+  }
+  .course-block:hover .delete-btn { display: flex; }
+
+  /* ===== 自定义课程：拖拽调整时长 ===== */
+  .resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 12px;
+    z-index: 6;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .resize-handle.top { top: 0; }
+  .resize-handle.bottom { bottom: 0; }
+  .resize-handle::after {
+    content: '';
+    width: 30px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 0 4px rgba(0,0,0,0.35);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .course-block:hover .resize-handle::after { opacity: 1; }
+  .resize-handle:hover::after { opacity: 1; }
+
+  .course-block.dragging {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    z-index: 20;
+    transition: none;
+  }
+
+  body.resizing { cursor: ns-resize !important; }
+  body.resizing * { cursor: ns-resize !important; user-select: none; }
+
+  .resize-tip {
+    position: fixed;
+    z-index: 500;
+    background: rgba(17,24,39,0.94);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 7px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .12s;
+    white-space: nowrap;
+    transform: translate(-50%, 16px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .resize-tip.show { opacity: 1; }
+  .resize-tip.blocked { background: rgba(185,28,28,0.95); }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 14px rgba(26,115,232,0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.93); }
+
+  /* Modal Overlay */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-title { font-size: 1rem; font-weight: 700; }
+  .modal-close {
+    width: 30px; height: 30px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Form */
+  .form-group { margin-bottom: 12px; }
+  .form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .form-input, .form-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: white;
+    color: var(--text);
+  }
+  .form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 11px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .btn-primary:active { background: var(--primary-dark); }
+
+  /* Detail Modal */
+  .detail-item {
+    display: flex;
+    padding: 9px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .detail-label {
+    width: 65px;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .detail-value {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  /* Mode Selector */
+  .mode-selector {
+    display: flex;
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 16px;
+    gap: 3px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .mode-btn.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  /* Weekday Selector */
+  .weekday-selector {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .weekday-chip {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .weekday-chip.selected {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .weekday-chip:active { transform: scale(0.95); }
+
+  /* Time Picker */
+  .time-picker {
+    margin: 12px 0;
+  }
+  .time-picker-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .time-picker-bar {
+    position: relative;
+    height: 48px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+  }
+  .time-picker-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+  }
+  .time-picker-slot {
+    flex: 1;
+    border-right: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: #9ca3af;
+    transition: background 0.1s;
+    position: relative;
+  }
+  .time-picker-slot:last-child { border-right: none; }
+  .time-picker-slot .slot-num {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: #6b7280;
+  }
+  .time-picker-slot .slot-time {
+    font-size: 0.5rem;
+    color: #9ca3af;
+  }
+  .time-picker-slot.selected {
+    background: rgba(26,115,232,0.15);
+  }
+  .time-picker-slot.in-range {
+    background: rgba(26,115,232,0.08);
+  }
+  .time-picker-selection {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    background: var(--primary);
+    border-radius: 4px;
+    opacity: 0.9;
+    pointer-events: none;
+    transition: left 0.1s, right 0.1s;
+  }
+  .time-picker-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 4px;
+    cursor: ew-resize;
+    z-index: 2;
+    pointer-events: auto;
+  }
+  .time-picker-handle.start { left: -4px; }
+  .time-picker-handle.end { right: -4px; }
+  .time-picker-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--text-light);
+  }
+
+  /* Hidden sections */
+  .date-section { display: none; }
+  .date-section.active { display: block; }
+  .weekday-section { display: none; }
+  .weekday-section.active { display: block; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: #1f2937;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    z-index: 400;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header { padding: 12px 16px; }
+    .header h1 { font-size: 1.1rem; }
+    .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .group-toggle { align-self: stretch; }
+    .group-btn { flex: 1; text-align: center; }
+    .week-nav { padding: 8px 16px; flex-wrap: wrap; gap: 8px; }
+    .week-info { min-width: 100%; order: -1; }
+    .week-btn { order: 1; }
+    .week-quick-select { order: 2; }
+    .today-btn { order: 3; }
+    .stats-bar { padding: 6px 16px; }
+    .schedule-container { padding: 8px; max-height: none; }
+    .time-picker-slot .slot-time { display: none; }
+  }
+
+  @media (min-width: 769px) {
+    .schedule-container { padding: 16px 24px; }
+    .course-name { font-size: 0.9rem; }
+    .course-detail { font-size: 0.65rem; }
+    .course-block { padding: 10px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1>📚 临床八班课表</h1>
+      <div class="header-sub">2026-2027学年第一学期 · 温州中心医院</div>
+    </div>
+    <div class="group-toggle">
+      <button class="group-btn active" data-group="all" onclick="setGroup('all')">全部</button>
+      <button class="group-btn" data-group="1" onclick="setGroup('1')">1组见习</button>
+      <button class="group-btn" data-group="2" onclick="setGroup('2')">2组见习</button>
+    </div>
+  </div>
+</div>
+
+<div class="week-nav">
+  <button class="week-btn" onclick="changeWeek(-1)">‹</button>
+  <div class="week-info">
+    <div class="week-num" id="weekNum">第1周</div>
+    <div class="week-range" id="weekRange">2026/09/07 - 09/13</div>
+  </div>
+  <button class="week-btn" onclick="changeWeek(1)">›</button>
+  <div class="week-quick-select">
+    <select id="weekSelect" onchange="jumpToWeek(this.value)">
+      <option value="0">第1周</option>
+      <option value="1">第2周</option>
+      <option value="2">第3周</option>
+      <option value="3">第4周</option>
+      <option value="4">第5周</option>
+      <option value="5">第6周</option>
+      <option value="6">第7周</option>
+      <option value="7">第8周</option>
+      <option value="8">第9周</option>
+      <option value="9">第10周</option>
+      <option value="10">第11周</option>
+      <option value="11">第12周</option>
+      <option value="12">第13周</option>
+      <option value="13">第14周</option>
+      <option value="14">第15周</option>
+      <option value="15">第16周</option>
+      <option value="16">第17周</option>
+    </select>
+  </div>
+  <button class="today-btn" onclick="goToday()">今天</button>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-chip"><span class="stat-dot dot-theory"></span>理论 <span id="statTheory">0</span></div>
+  <div class="stat-chip"><span class="stat-dot dot-practice"></span>见习 <span id="statPractice">0</span></div>
+  <div class="stat-chip"><span class="stat-dot dot-custom"></span>自定义 <span id="statCustom">0</span></div>
+</div>
+
+<div class="schedule-container">
+  <div class="schedule-table-wrapper">
+    <table class="schedule-table">
+      <thead>
+        <tr>
+          <th style="width:80px;min-width:80px;">节次</th>
+          <th>周一</th>
+          <th>周二</th>
+          <th>周三</th>
+          <th>周四</th>
+          <th>周五</th>
+          <th>周六</th>
+          <th>周日</th>
+        </tr>
+      </thead>
+      <tbody id="scheduleBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<button class="fab" onclick="openAddModal()">+</button>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ 添加学习计划</div>
+      <button class="modal-close" onclick="closeAddModal()">×</button>
+    </div>
+    <form id="addForm" onsubmit="saveCustomCourse(event)">
+      <!-- 添加模式选择 -->
+      <div class="mode-selector">
+        <button type="button" class="mode-btn active" data-mode="single" onclick="setAddMode('single')">单日</button>
+        <button type="button" class="mode-btn" data-mode="range" onclick="setAddMode('range')">日期范围</button>
+        <button type="button" class="mode-btn" data-mode="weekly" onclick="setAddMode('weekly')">每周重复</button>
+      </div>
+
+      <!-- 单日模式 -->
+      <div class="date-section active" id="dateSection-single">
+        <div class="form-group">
+          <label class="form-label">日期</label>
+          <input type="date" class="form-input" id="customDate" required>
+        </div>
+      </div>
+
+      <!-- 日期范围模式 -->
+      <div class="date-section" id="dateSection-range">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">开始日期</label>
+            <input type="date" class="form-input" id="customDateStart" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">结束日期</label>
+            <input type="date" class="form-input" id="customDateEnd" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- 每周重复模式 -->
+      <div class="date-section" id="dateSection-weekly">
+        <div class="form-group">
+          <label class="form-label">选择星期</label>
+          <div class="weekday-selector" id="weekdaySelector">
+            <div class="weekday-chip" data-day="1" onclick="toggleWeekday(this)">一</div>
+            <div class="weekday-chip" data-day="2" onclick="toggleWeekday(this)">二</div>
+            <div class="weekday-chip" data-day="3" onclick="toggleWeekday(this)">三</div>
+            <div class="weekday-chip" data-day="4" onclick="toggleWeekday(this)">四</div>
+            <div class="weekday-chip" data-day="5" onclick="toggleWeekday(this)">五</div>
+            <div class="weekday-chip" data-day="6" onclick="toggleWeekday(this)">六</div>
+            <div class="weekday-chip" data-day="0" onclick="toggleWeekday(this)">日</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">生效开始</label>
+            <input type="date" class="form-input" id="customWeekStart" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">生效结束</label>
+            <input type="date" class="form-input" id="customWeekEnd" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- 时间段选择器 -->
+      <div class="form-group">
+        <label class="form-label">时间段（点击选择起止节次，可拖动调整）</label>
+        <div class="time-picker" id="timePicker">
+          <div class="time-picker-bar" id="timePickerBar">
+            <div class="time-picker-track" id="timePickerTrack"></div>
+            <div class="time-picker-selection" id="timePickerSelection"></div>
+          </div>
+          <div class="time-picker-info">
+            <span id="timePickerStart">起始：--</span>
+            <span id="timePickerEnd">结束：--</span>
+            <span id="timePickerDuration">共 0 节</span>
+          </div>
+        </div>
+        <!-- 隐藏的输入框存储时间 -->
+        <input type="hidden" id="customStartPeriod" value="">
+        <input type="hidden" id="customEndPeriod" value="">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">科目</label>
+        <input type="text" class="form-input" id="customSubject" placeholder="如：自习 / 复习 / 考试" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">内容</label>
+        <input type="text" class="form-input" id="customContent" placeholder="具体学习内容">
+      </div>
+      <div class="form-group">
+        <label class="form-label">地点</label>
+        <input type="text" class="form-input" id="customLocation" placeholder="如：图书馆 / 宿舍">
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <input type="text" class="form-input" id="customNote" placeholder="其他备注信息">
+      </div>
+      <button type="submit" class="btn-primary">保存计划</button>
+    </form>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="detailTitle">课程详情</div>
+      <button class="modal-close" onclick="closeDetailModal()">×</button>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="resize-tip" id="resizeTip"></div>
+
+<script>
+// ===== 节次时间定义 (17节) =====
+const TIME_SLOTS = [
+  {num:1,  start:"08:00", end:"08:40"},
+  {num:2,  start:"08:45", end:"09:25"},
+  {num:3,  start:"09:40", end:"10:20"},
+  {num:4,  start:"10:25", end:"11:05"},
+  {num:5,  start:"11:10", end:"11:50"},
+  {num:6,  start:"11:55", end:"12:35"},
+  {num:7,  start:"12:40", end:"13:20"},
+  {num:8,  start:"13:30", end:"14:10"},
+  {num:9,  start:"14:15", end:"14:55"},
+  {num:10, start:"15:05", end:"15:45"},
+  {num:11, start:"15:50", end:"16:30"},
+  {num:12, start:"16:35", end:"17:15"},
+  {num:13, start:"17:20", end:"18:00"},
+  {num:14, start:"18:20", end:"19:00"},
+  {num:15, start:"19:05", end:"19:45"},
+  {num:16, start:"19:50", end:"20:30"},
+  {num:17, start:"20:35", end:"21:15"}
+];
+
+// ===== 课程数据 =====
+const COURSES = [
+  {
+    "date": "2026-09-07",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "肿瘤",
+    "teacher": "周宏",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-07",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "呼吸系统总论、支气管扩张症、肺部感染性疾病",
+    "teacher": "戴新建",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-08",
+    "weekday": 2,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "神经病学",
+    "content": "神经病学总论",
+    "teacher": "管朝红",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-09-09",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "儿科学绪论、生长发育",
+    "teacher": "郑靖阳",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-09",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "外科学",
+    "content": "颈部疾病",
+    "teacher": "李霄阳",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-10",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "肺部感染性疾病",
+    "teacher": "戴新建",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-11",
+    "weekday": 5,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "传染病学",
+    "content": "总论",
+    "teacher": "苏菲菲",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-09-14",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "液体疗法",
+    "teacher": "陈智敏",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-14",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "乳房疾病",
+    "teacher": "李霄阳",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-14",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "胸膜疾病、间质性肺疾病（第1、2节）",
+    "teacher": "池琼",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-15",
+    "weekday": 2,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "神经病学",
+    "content": "脑血管疾病",
+    "teacher": "茅新蕾",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-09-16",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "儿童营养及喂养、营养障碍疾病",
+    "teacher": "邓秀睿",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-16",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "外科学",
+    "content": "颅内和椎管内肿瘤、血管性疾病",
+    "teacher": "孙军",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-17",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "原发性支气管肺癌",
+    "teacher": "张抱一",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-18",
+    "weekday": 5,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "传染病学",
+    "content": "病毒性肝炎",
+    "teacher": "蒋贤高",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-09-21",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "先天性肥厚性幽门狭窄、急性肠套叠、先天性巨结肠",
+    "teacher": "钱霜霜",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-21",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "颅内压增高和脑疝",
+    "teacher": "巴华君",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-21",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "慢性阻塞性肺疾病",
+    "teacher": "戴新建",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-22",
+    "weekday": 2,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "神经病学",
+    "content": "癫痫",
+    "teacher": "陆琦",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-09-23",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "小儿造血血象特点、营养性贫血",
+    "teacher": "陈茜娜",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-23",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "外科学",
+    "content": "颅脑损伤",
+    "teacher": "巴华君",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-24",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "肺结核",
+    "teacher": "李知慧",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-28",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "营养性维生素D缺乏性佝偻病",
+    "teacher": "陈茜娜",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-28",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "泌尿、男生殖系统疾病总论,泌尿系统损伤",
+    "teacher": "张弦",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-28",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "肺血栓栓塞症、肺动脉高压与肺源性心脏病",
+    "teacher": "池琼",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-29",
+    "weekday": 2,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "换药、烧伤",
+    "teacher": "吴仁毅",
+    "location": "7号8楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-09-29",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "神经病学",
+    "content": "周围神经疾病",
+    "teacher": "葛利娜",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-30",
+    "weekday": 3,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "换药、烧伤",
+    "teacher": "吴仁毅",
+    "location": "7号8楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-09-30",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "新生儿总论（概述足月儿早产儿）、NRDS",
+    "teacher": "陈清",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-09-30",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "外科学",
+    "content": "泌尿男生殖系感染（包含结核）",
+    "teacher": "林尔将",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-08",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "慢性阻塞性肺病、肺源性心脏病",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-08",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "病史采集和体格检查",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-08",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "支气管哮喘",
+    "teacher": "董双霞",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-09",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "慢性阻塞性肺病、肺源性心脏病",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-09",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "病史采集和体格检查",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-09",
+    "weekday": 5,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "病毒性肝炎",
+    "teacher": "蒋贤高",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-12",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "新生儿窒息",
+    "teacher": "周丽",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-12",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "良性前列腺增生,尿路结石",
+    "teacher": "李镭钰",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-12",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "急性呼吸窘迫综合征、呼吸衰竭与呼吸支持技术",
+    "teacher": "张知远",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-13",
+    "weekday": 2,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "神经系统病史采集及体格检查、 神经科专科辅助检查",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-13",
+    "weekday": 2,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "神经病学",
+    "content": "脊髓疾病和头痛",
+    "teacher": "何思思",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-10-14",
+    "weekday": 3,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "神经系统病史采集及体格检查、 神经科专科辅助检查",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-14",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "新生儿黄疸",
+    "teacher": "钱霜霜",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-14",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "外科学",
+    "content": "泌尿男生殖系肿瘤",
+    "teacher": "李志家",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-15",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "支气管哮喘",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-15",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "消化系统疾病（腹泻病、液体疗法）",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-15",
+    "weekday": 4,
+    "timeSlot": "下3-5",
+    "timeRange": "15:05-17:15",
+    "subject": "内科学",
+    "content": "心力衰竭",
+    "teacher": "林斌",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-10-16",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "支气管哮喘",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-16",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "营养和营养障碍疾病",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-16",
+    "weekday": 5,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "肾综合征出血热",
+    "teacher": "施伎蝉",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-19",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "传染性单核细胞增多症",
+    "teacher": "袁建靖",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-19",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "胸部损伤，胸壁、胸膜疾病",
+    "teacher": "金良达",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-19",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "心律失常",
+    "teacher": "林苗",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-20",
+    "weekday": 2,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "麻醉",
+    "teacher": "林立",
+    "location": "7号楼6楼麻醉科",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-10-20",
+    "weekday": 2,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "脑血管病",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-20",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "神经病学",
+    "content": "运动障碍性疾病",
+    "teacher": "张雅西",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-21",
+    "weekday": 3,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "麻醉",
+    "teacher": "林立",
+    "location": "7号楼6楼麻醉科",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-10-21",
+    "weekday": 3,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "脑血管病",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-21",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "结核病总论、原发型肺结核",
+    "teacher": "林锋",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-21",
+    "weekday": 3,
+    "timeSlot": "下3",
+    "timeRange": "15:05-15:45",
+    "subject": "外科学",
+    "content": "原发性纵隔肿瘤",
+    "teacher": "王驰超",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "1"
+  },
+  {
+    "date": "2026-10-21",
+    "weekday": 3,
+    "timeSlot": "下4",
+    "timeRange": "15:50-16:30",
+    "subject": "外科学",
+    "content": "主动脉疾病",
+    "teacher": "李春孟",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "1"
+  },
+  {
+    "date": "2026-10-22",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "细菌性肺炎、胸腔积液",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-22",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "呼吸系统疾病（肺炎）",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-22",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "心律失常",
+    "teacher": "林苗",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-23",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "细菌性肺炎、胸腔积液",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-23",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "消化系统疾病（腹泻病、液体疗法）",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-23",
+    "weekday": 5,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "传染病学",
+    "content": "流行性乙型脑炎、细菌性痢疾",
+    "teacher": "戴建义",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-10-26",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "颅内感染（化脓性脑膜炎、结核性脑膜炎、病毒性脑炎）",
+    "teacher": "黄晨露",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-26",
+    "weekday": 1,
+    "timeSlot": "上3-4",
+    "timeRange": "09:40-11:05",
+    "subject": "外科学",
+    "content": "肺、食管疾病",
+    "teacher": "郑元亮",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-26",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "高血压",
+    "teacher": "季晓君",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-27",
+    "weekday": 2,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "脊髓疾病或神经系统变性疾病",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-27",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "神经病学",
+    "content": "肌肉疾病、中枢神经系统脱髓鞘性疾病",
+    "teacher": "庄青青",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-28",
+    "weekday": 3,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "脊髓疾病或神经系统变性疾病",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-28",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "小儿腹泻",
+    "teacher": "周丽",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-28",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "外科学",
+    "content": "心脏疾病",
+    "teacher": "郑元亮",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-10-29",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "支气管肺癌",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-29",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "心血管系统疾病（先天性心脏病）",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-29",
+    "weekday": 4,
+    "timeSlot": "下3-5",
+    "timeRange": "15:05-17:15",
+    "subject": "内科学",
+    "content": "冠心病",
+    "teacher": "戴海岳",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-10-30",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "支气管肺癌",
+    "teacher": "黄阳",
+    "location": "7号楼16楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-10-30",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "呼吸系统疾病（肺炎）",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-10-30",
+    "weekday": 5,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "艾滋病",
+    "teacher": "崔小亚",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-02",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "支气管肺炎、不同病原肺炎",
+    "teacher": "林苗苗",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-02",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "心肌疾病",
+    "teacher": "黄旭梅",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-03",
+    "weekday": 2,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "肿瘤",
+    "teacher": "何志坚",
+    "location": "7号10楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-03",
+    "weekday": 2,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "周围神经病或其他疾病",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-11-03",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "流行性脑脊髓膜炎",
+    "teacher": "施伎蝉",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-04",
+    "weekday": 3,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "肿瘤",
+    "teacher": "何志坚",
+    "location": "7号10楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-04",
+    "weekday": 3,
+    "timeSlot": "上1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "神经病学见习",
+    "content": "周围神经病或其他疾病",
+    "teacher": "林彩丹",
+    "location": "6号楼2楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-11-04",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "原发性免疫缺陷病概论、支气管哮喘",
+    "teacher": "陈智敏",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-04",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "心瓣膜疾病、感染性心内膜炎",
+    "teacher": "王凯华",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-05",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "泌尿系统疾病（急性肾小球肾炎、肾病综合征）",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-05",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "慢性心力衰竭",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-06",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "心血管系统疾病（先天性心脏病）",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-06",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "慢性心力衰竭",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-09",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "先心（概论、ASD）",
+    "teacher": "陈森",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-09",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "胃食管反流病、溃疡病",
+    "teacher": "张奕秉",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-10",
+    "weekday": 2,
+    "timeSlot": "下1-3",
+    "timeRange": "13:30-15:40",
+    "subject": "传染病学",
+    "content": "败血症",
+    "teacher": "蔡玉伟",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-11-11",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "先心（VSD、PDA、TOF）",
+    "teacher": "陈森",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-11",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "慢性胃炎、胃癌",
+    "teacher": "潘杰",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-12",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "血液系统疾病（贫血）",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-12",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "快速性心律失常",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-12",
+    "weekday": 4,
+    "timeSlot": "下3-5",
+    "timeRange": "15:05-17:15",
+    "subject": "内科学",
+    "content": "肝硬化",
+    "teacher": "姜利佳",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "3"
+  },
+  {
+    "date": "2026-11-13",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "泌尿系统疾病（急性肾小球肾炎、肾病综合征）",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-13",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "快速性心律失常",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-13",
+    "weekday": 5,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "沙门菌感染",
+    "teacher": "叶慧",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-16",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "急性肾小球肾炎",
+    "teacher": "林锋",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-16",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "脂肪性肝病、药物性肝病",
+    "teacher": "张奕秉",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-17",
+    "weekday": 2,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "泌尿",
+    "teacher": "陈熙猛",
+    "location": "7号12楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-17",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "疟疾",
+    "teacher": "缪星国",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-18",
+    "weekday": 3,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "泌尿",
+    "teacher": "陈熙猛",
+    "location": "7号12楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-18",
+    "weekday": 3,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "儿科学",
+    "content": "肾病综合征",
+    "teacher": "陈乐乐",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-18",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "结核性腹膜炎、肠结核",
+    "teacher": "黄春伟",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-19",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "神经肌肉系统疾病（颅内感染）",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-19",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "高血压病、心绞痛",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-19",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "炎症性肠病",
+    "teacher": "金捷",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-20",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "血液系统疾病（贫血）",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-20",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "高血压病、心绞痛",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-20",
+    "weekday": 5,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "霍乱",
+    "teacher": "叶慧",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-23",
+    "weekday": 1,
+    "timeSlot": "上1-2",
+    "timeRange": "08:00-09:25",
+    "subject": "儿科学",
+    "content": "呆小病、先天愚型、苯丙酮尿症",
+    "teacher": "陈乐乐",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-23",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "急性胰腺炎",
+    "teacher": "袁渝萍",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-24",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "钩端螺旋体病",
+    "teacher": "何贵清",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-25",
+    "weekday": 3,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "消化道出血",
+    "teacher": "金捷",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-26",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "营养和营养障碍疾病",
+    "teacher": "梁忠杰",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-26",
+    "weekday": 4,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "心脏瓣膜病",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-26",
+    "weekday": 4,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "中毒概述",
+    "teacher": "陈玉熹",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-27",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "儿科学见习",
+    "content": "神经肌肉系统疾病（颅内感染）",
+    "teacher": "胡莹莹",
+    "location": "学院路院区8幢20楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4"
+  },
+  {
+    "date": "2026-11-27",
+    "weekday": 5,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "内科学见习",
+    "content": "心脏瓣膜病",
+    "teacher": "卢玲芬",
+    "location": "7号楼17楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-11-27",
+    "weekday": 5,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "日本血吸虫",
+    "teacher": "苏菲菲",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-11-30",
+    "weekday": 1,
+    "timeSlot": "下3-4",
+    "timeRange": "15:05-16:30",
+    "subject": "内科学",
+    "content": "农药中毒",
+    "teacher": "陈玉熹",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-12-01",
+    "weekday": 2,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "颅脑",
+    "teacher": "朱再军",
+    "location": "1号楼2楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-12-01",
+    "weekday": 2,
+    "timeSlot": "下1-2",
+    "timeRange": "13:30-14:55",
+    "subject": "传染病学",
+    "content": "抗菌药物的临床应用",
+    "teacher": "施伎蝉",
+    "location": "双屿院区4号楼2楼阶梯教室",
+    "type": "理论",
+    "group": "all",
+    "hours": "2"
+  },
+  {
+    "date": "2026-12-02",
+    "weekday": 3,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "颅脑",
+    "teacher": "朱再军",
+    "location": "1号楼2楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-12-03",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "消化性溃疡、原发性肝癌",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-04",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "消化性溃疡、原发性肝癌",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-10",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "肝硬化",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-11",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "肝硬化",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-15",
+    "weekday": 2,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "心胸",
+    "teacher": "梁孝用",
+    "location": "7号10楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-12-16",
+    "weekday": 3,
+    "timeSlot": "1-4",
+    "timeRange": "08:30-12:10",
+    "subject": "外科学见习",
+    "content": "心胸",
+    "teacher": "梁孝用",
+    "location": "7号10楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "4.0"
+  },
+  {
+    "date": "2026-12-17",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "急性胰腺炎、结核性腹膜炎",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-18",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "急性胰腺炎、结核性腹膜炎",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-24",
+    "weekday": 4,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "上消化道出血",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "1",
+    "hours": "3.0"
+  },
+  {
+    "date": "2026-12-25",
+    "weekday": 5,
+    "timeSlot": "1-3",
+    "timeRange": "08:30-11:10",
+    "subject": "内科学见习",
+    "content": "上消化道出血",
+    "teacher": "苏煌",
+    "location": "7号楼18楼示教室",
+    "type": "见习",
+    "group": "2",
+    "hours": "3.0"
+  }
+];
+
+// ===== 状态 =====
+let currentGroup = 'all';
+let currentWeekOffset = 0;
+let customCourses = JSON.parse(localStorage.getItem('clinical8_custom') || '[]');
+const semesterStart = new Date('2026-09-07');
+const today = new Date();
+
+// 是否支持精细指针（鼠标）—— 只在电脑端启用拖拽调时长
+const IS_FINE_POINTER = window.matchMedia('(pointer: fine)').matches;
+
+// ===== 初始化 =====
+function init() {
+  const diffDays = Math.floor((today - semesterStart) / (1000 * 60 * 60 * 24));
+  currentWeekOffset = Math.floor(diffDays / 7);
+  if (currentWeekOffset < 0) currentWeekOffset = 0;
+  render();
+
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target === el) el.classList.remove('active');
+    });
+  });
+}
+
+// ===== 组切换 =====
+function setGroup(g) {
+  currentGroup = g;
+  document.querySelectorAll('.group-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.group === g);
+  });
+  render();
+  showToast(g === 'all' ? '显示全部课程' : `已切换至${g}组见习`);
+}
+
+// ===== 周导航 =====
+function changeWeek(delta) {
+  currentWeekOffset += delta;
+  render();
+}
+function jumpToWeek(weekIndex) {
+  currentWeekOffset = parseInt(weekIndex);
+  render();
+}
+function goToday() {
+  const diffDays = Math.floor((today - semesterStart) / (1000 * 60 * 60 * 24));
+  currentWeekOffset = Math.floor(diffDays / 7);
+  if (currentWeekOffset < 0) currentWeekOffset = 0;
+  render();
+}
+function getWeekStart() {
+  const start = new Date(semesterStart);
+  start.setDate(start.getDate() + currentWeekOffset * 7);
+  return start;
+}
+
+// ===== 时间→节次映射 =====
+function findPeriod(time) {
+  const t = time.length > 5 ? time.substring(0, 5) : time;
+
+  for (let i = 0; i < TIME_SLOTS.length; i++) {
+    const slot = TIME_SLOTS[i];
+    if (t >= slot.start && t <= slot.end) {
+      return slot.num;
+    }
+    if (i > 0) {
+      const prevEnd = TIME_SLOTS[i - 1].end;
+      if (t > prevEnd && t < slot.start) {
+        return slot.num;
+      }
+    }
+  }
+  if (t > TIME_SLOTS[TIME_SLOTS.length - 1].end) {
+    return TIME_SLOTS[TIME_SLOTS.length - 1].num;
+  }
+  return TIME_SLOTS[0].num;
+}
+
+function getPeriodSpan(course) {
+  const range = course.timeRange;
+  if (!range) return { startPeriod: 1, endPeriod: 1 };
+  const parts = range.split('-');
+  if (parts.length !== 2) return { startPeriod: 1, endPeriod: 1 };
+  const startPeriod = findPeriod(parts[0].trim());
+  const endPeriod = findPeriod(parts[1].trim());
+  return { startPeriod, endPeriod: Math.max(startPeriod, endPeriod) };
+}
+
+// ===== 获取某天课程 =====
+function getDayCourses(dateStr) {
+  const all = [...COURSES, ...customCourses];
+  let filtered = all.filter(c => c.date === dateStr);
+  if (currentGroup !== 'all') {
+    filtered = filtered.filter(c => c.group === 'all' || c.group === currentGroup);
+  }
+  filtered.sort((a, b) => {
+    const ta = timeToMinutes(a.timeRange?.split('-')[0] || '00:00');
+    const tb = timeToMinutes(b.timeRange?.split('-')[0] || '00:00');
+    return ta - tb;
+  });
+  return filtered;
+}
+
+// ===== 主渲染函数 =====
+function render() {
+  const weekStart = getWeekStart();
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const weekNum = currentWeekOffset + 1;
+  document.getElementById('weekNum').textContent = `第${weekNum}周`;
+  document.getElementById('weekRange').textContent =
+    `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+
+  const weekSelect = document.getElementById('weekSelect');
+  if (weekSelect) weekSelect.value = currentWeekOffset;
+
+  const tbody = document.getElementById('scheduleBody');
+  tbody.innerHTML = '';
+
+  const dayDates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    dayDates.push(d);
+  }
+
+  const dayCourses = [[], [], [], [], [], [], []];
+  let statTheory = 0, statPractice = 0, statCustom = 0;
+
+  for (let d = 0; d < 7; d++) {
+    const dateStr = formatDateFull(dayDates[d]);
+    const courses = getDayCourses(dateStr);
+    courses.forEach(c => {
+      const span = getPeriodSpan(c);
+      dayCourses[d].push({ ...c, ...span });
+      if (c.type === '理论') statTheory++;
+      else if (c.type === '见习') statPractice++;
+      else if (c.type === '自定义') statCustom++;
+    });
+  }
+
+  document.getElementById('statTheory').textContent = statTheory;
+  document.getElementById('statPractice').textContent = statPractice;
+  document.getElementById('statCustom').textContent = statCustom;
+
+  const numPeriods = TIME_SLOTS.length;
+  const grid = Array(numPeriods).fill(null).map(() => Array(7).fill(null));
+
+  for (let d = 0; d < 7; d++) {
+    dayCourses[d].forEach(course => {
+      const startIdx = course.startPeriod - 1;
+      const endIdx = course.endPeriod - 1;
+      for (let p = startIdx; p <= endIdx && p < numPeriods; p++) {
+        if (p === startIdx) {
+          grid[p][d] = course;
+        } else {
+          grid[p][d] = { _continued: true, _ref: course };
+        }
+      }
+    });
+  }
+
+  for (let p = 0; p < numPeriods; p++) {
+    const slot = TIME_SLOTS[p];
+    const tr = document.createElement('tr');
+
+    const periodTd = document.createElement('td');
+    periodTd.className = 'period-cell';
+    periodTd.innerHTML = `<div class="period-num">${slot.num}</div><div class="period-time">${slot.start}</div><div class="period-time">${slot.end}</div>`;
+    tr.appendChild(periodTd);
+
+    for (let d = 0; d < 7; d++) {
+      const cell = grid[p][d];
+
+      if (!cell) {
+        const td = document.createElement('td');
+        td.className = 'empty-cell';
+        tr.appendChild(td);
+        continue;
+      }
+
+      if (cell._continued) {
+        continue;
+      }
+
+      const td = document.createElement('td');
+      td.className = 'course-cell';
+      const span = cell.endPeriod - cell.startPeriod + 1;
+      td.rowSpan = Math.min(span, numPeriods - p);
+
+      const typeClass = cell.type === '理论' ? 'theory' :
+                        cell.type === '见习' ? 'practice' : 'custom';
+
+      const block = document.createElement('div');
+      block.className = `course-block ${typeClass}`;
+
+      // 正在拖拽中的那个块加高亮
+      if (resizeState && resizeState.original && resizeState.original.id === cell.id) {
+        block.classList.add('dragging');
+      }
+
+      block.onclick = () => showDetail(cell);
+
+      let html = `<div class="course-name">${cell.subject}</div>`;
+      if (cell.content) html += `<div class="course-detail">${cell.content}</div>`;
+      if (cell.location) html += `<div class="course-location">📍 ${cell.location}</div>`;
+      if (cell.teacher) html += `<div class="course-teacher">👤 ${cell.teacher}</div>`;
+      html += `<div class="course-time-display">${cell.timeRange || ''}</div>`;
+      if (cell.type === '自定义') {
+        html += `<button class="delete-btn" onclick="event.stopPropagation(); deleteCustomCourse('${cell.id}')">×</button>`;
+      }
+      block.innerHTML = html;
+
+      // ===== 自定义课程：加上下拖拽手柄（仅电脑端） =====
+      if (cell.type === '自定义' && IS_FINE_POINTER) {
+        ['top', 'bottom'].forEach(edge => {
+          const handle = document.createElement('div');
+          handle.className = `resize-handle ${edge}`;
+          handle.title = edge === 'top' ? '拖拽调整开始节次' : '拖拽调整结束节次';
+          handle.addEventListener('mousedown', ev => startResize(ev, cell, edge));
+          handle.addEventListener('click', ev => ev.stopPropagation());
+          block.appendChild(handle);
+        });
+      }
+
+      td.appendChild(block);
+      tr.appendChild(td);
+    }
+
+    tbody.appendChild(tr);
+  }
+
+  // 拖拽中：保持行高冻结，避免网格跳动
+  if (resizeState && resizeState.heights && resizeState.heights.length) {
+    const trs = tbody.querySelectorAll('tr');
+    resizeState.heights.forEach((h, i) => {
+      if (trs[i]) trs[i].style.height = h + 'px';
+    });
+  }
+}
+
+/* =========================================================
+   拖拽调整自定义课程时长
+   ========================================================= */
+let resizeState = null;
+let rafPending = false;
+let lastPointer = { x: 0, y: 0 };
+
+/**
+ * 开始拖拽
+ * @param {MouseEvent} e
+ * @param {object} course  当前渲染用的课程副本（含 startPeriod / endPeriod）
+ * @param {string} edge    'top' | 'bottom'
+ */
+function startResize(e, course, edge) {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  // 找到 localStorage 里的原始对象
+  const original = customCourses.find(c => c.id === course.id);
+  if (!original) return;
+
+  // 测量并冻结当前行高，防止拖拽过程中网格跳动
+  const rows = Array.from(document.querySelectorAll('.schedule-table tbody tr'));
+  const heights = rows.map(r => Math.round(r.getBoundingClientRect().height));
+
+  resizeState = {
+    course,
+    original,
+    edge,
+    curStart: course.startPeriod,
+    curEnd: course.endPeriod,
+    origStart: course.startPeriod,
+    origEnd: course.endPeriod,
+    heights
+  };
+
+  document.body.classList.add('resizing');
+  document.addEventListener('mousemove', onResizeMove);
+  document.addEventListener('mouseup', onResizeEnd);
+
+  updateResizeTip(e.clientX, e.clientY, resizeState.curStart, resizeState.curEnd, false);
+  render();
+}
+
+function onResizeMove(e) {
+  if (!resizeState) return;
+  e.preventDefault();
+  lastPointer.x = e.clientX;
+  lastPointer.y = e.clientY;
+
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    if (resizeState) doResizeMove(lastPointer.x, lastPointer.y);
+  });
+}
+
+function doResizeMove(clientX, clientY) {
+  const rows = Array.from(document.querySelectorAll('.schedule-table tbody tr'));
+  if (!rows.length) return;
+
+  const rects = rows.map(r => r.getBoundingClientRect());
+
+  // 计算鼠标落在第几行
+  let idx = -1;
+  if (clientY <= rects[0].top) {
+    idx = 0;
+  } else if (clientY >= rects[rects.length - 1].bottom) {
+    idx = rects.length - 1;
+  } else {
+    for (let i = 0; i < rects.length; i++) {
+      if (clientY >= rects[i].top && clientY < rects[i].bottom) { idx = i; break; }
+    }
+  }
+  if (idx < 0) idx = 0;
+
+  const period = idx + 1;
+  let ns = resizeState.curStart;
+  let ne = resizeState.curEnd;
+
+  if (resizeState.edge === 'bottom') {
+    ne = Math.max(ns, period);
+  } else {
+    ns = Math.min(ne, period);
+  }
+
+  // 没变化
+  if (ns === resizeState.curStart && ne === resizeState.curEnd) {
+    updateResizeTip(clientX, clientY, ns, ne, false);
+    return;
+  }
+
+  // 冲突检测
+  if (hasConflict(resizeState.original, ns, ne)) {
+    updateResizeTip(clientX, clientY, ns, ne, true);
+    return;
+  }
+
+  resizeState.curStart = ns;
+  resizeState.curEnd = ne;
+
+  const newRange = TIME_SLOTS[ns - 1].start + '-' + TIME_SLOTS[ne - 1].end;
+  resizeState.original.timeRange = newRange;
+  resizeState.original.timeSlot = newRange;
+
+  render();
+  updateResizeTip(clientX, clientY, ns, ne, false);
+}
+
+function hasConflict(course, ns, ne) {
+  const others = [...COURSES, ...customCourses].filter(c =>
+    c.date === course.date &&
+    c.id !== course.id &&
+    (currentGroup === 'all' || c.group === 'all' || c.group === currentGroup)
+  );
+  return others.some(c => {
+    const s = getPeriodSpan(c);
+    return !(ne < s.startPeriod || ns > s.endPeriod);
+  });
+}
+
+function onResizeEnd(e) {
+  document.removeEventListener('mousemove', onResizeMove);
+  document.removeEventListener('mouseup', onResizeEnd);
+  document.body.classList.remove('resizing');
+  hideResizeTip();
+
+  if (!resizeState) return;
+
+  // 补一次最后一帧的位移
+  if (rafPending) {
+    rafPending = false;
+    doResizeMove(e.clientX || lastPointer.x, e.clientY || lastPointer.y);
+  }
+
+  const { original, origStart, origEnd, curStart, curEnd } = resizeState;
+  resizeState = null;
+
+  if (origStart !== curStart || origEnd !== curEnd) {
+    localStorage.setItem('clinical8_custom', JSON.stringify(customCourses));
+    render();
+    showToast(`⏱ 已调整为 第${curStart}-${curEnd}节 · ${original.timeRange}`);
+  } else {
+    render();
+  }
+}
+
+function updateResizeTip(x, y, ns, ne, blocked) {
+  const tip = document.getElementById('resizeTip');
+  const s = TIME_SLOTS[ns - 1];
+  const e2 = TIME_SLOTS[ne - 1];
+  if (blocked) {
+    tip.textContent = '⚠ 该时段已被占用';
+    tip.classList.add('blocked');
+  } else {
+    tip.textContent = `第${ns}-${ne}节 · ${s.start} - ${e2.end} · 共${ne - ns + 1}节`;
+    tip.classList.remove('blocked');
+  }
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+  tip.classList.add('show');
+}
+
+function hideResizeTip() {
+  document.getElementById('resizeTip').classList.remove('show');
+}
+
+// ===== 添加课程 =====
+let addMode = 'single';
+let selectedWeekdays = new Set();
+let pickerStartPeriod = null;
+let pickerEndPeriod = null;
+let isDragging = false;
+
+function openAddModal() {
+  document.getElementById('addModal').classList.add('active');
+  const d = new Date();
+  document.getElementById('customDate').value = formatDateFull(d);
+
+  pickerStartPeriod = null;
+  pickerEndPeriod = null;
+  renderTimePicker();
+  updateTimePickerInfo();
+
+  setAddMode('single');
+  selectedWeekdays.clear();
+  document.querySelectorAll('.weekday-chip').forEach(c => c.classList.remove('selected'));
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('active');
+  document.getElementById('addForm').reset();
+  pickerStartPeriod = null;
+  pickerEndPeriod = null;
+}
+
+function setAddMode(mode) {
+  addMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  document.querySelectorAll('.date-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('dateSection-' + mode).classList.add('active');
+}
+
+function toggleWeekday(el) {
+  const day = parseInt(el.dataset.day);
+  if (selectedWeekdays.has(day)) {
+    selectedWeekdays.delete(day);
+    el.classList.remove('selected');
+  } else {
+    selectedWeekdays.add(day);
+    el.classList.add('selected');
+  }
+}
+
+function renderTimePicker() {
+  const track = document.getElementById('timePickerTrack');
+  track.innerHTML = '';
+
+  TIME_SLOTS.forEach((slot, idx) => {
+    const div = document.createElement('div');
+    div.className = 'time-picker-slot';
+    div.dataset.index = idx;
+    div.innerHTML = `<span class="slot-num">${slot.num}</span><span class="slot-time">${slot.start}</span>`;
+    div.addEventListener('mousedown', (e) => onPickerMouseDown(e, idx));
+    div.addEventListener('mouseenter', (e) => onPickerMouseEnter(e, idx));
+    track.appendChild(div);
+  });
+
+  document.addEventListener('mouseup', onPickerMouseUp);
+}
+
+function onPickerMouseDown(e, idx) {
+  e.preventDefault();
+  isDragging = true;
+  pickerStartPeriod = idx;
+  pickerEndPeriod = idx;
+  updatePickerSelection();
+}
+
+function onPickerMouseEnter(e, idx) {
+  if (!isDragging) return;
+  pickerEndPeriod = idx;
+  updatePickerSelection();
+}
+
+function onPickerMouseUp() {
+  isDragging = false;
+  updateTimePickerInfo();
+}
+
+function updatePickerSelection() {
+  const slots = document.querySelectorAll('.time-picker-slot');
+  const start = Math.min(pickerStartPeriod, pickerEndPeriod);
+  const end = Math.max(pickerStartPeriod, pickerEndPeriod);
+
+  slots.forEach((slot, idx) => {
+    slot.classList.remove('selected', 'in-range');
+    if (idx === start || idx === end) {
+      slot.classList.add('selected');
+    } else if (idx > start && idx < end) {
+      slot.classList.add('in-range');
+    }
+  });
+
+  const selection = document.getElementById('timePickerSelection');
+  if (pickerStartPeriod !== null && pickerEndPeriod !== null) {
+    const s = Math.min(pickerStartPeriod, pickerEndPeriod);
+    const e = Math.max(pickerStartPeriod, pickerEndPeriod);
+    const slotWidth = 100 / TIME_SLOTS.length;
+    selection.style.left = (s * slotWidth) + '%';
+    selection.style.width = ((e - s + 1) * slotWidth) + '%';
+    selection.style.display = 'block';
+  }
+
+  updateTimePickerInfo();
+}
+
+function updateTimePickerInfo() {
+  const startEl = document.getElementById('timePickerStart');
+  const endEl = document.getElementById('timePickerEnd');
+  const durEl = document.getElementById('timePickerDuration');
+  const startInput = document.getElementById('customStartPeriod');
+  const endInput = document.getElementById('customEndPeriod');
+
+  if (pickerStartPeriod !== null && pickerEndPeriod !== null) {
+    const s = Math.min(pickerStartPeriod, pickerEndPeriod);
+    const e = Math.max(pickerStartPeriod, pickerEndPeriod);
+    const startSlot = TIME_SLOTS[s];
+    const endSlot = TIME_SLOTS[e];
+
+    startEl.textContent = `起始：第${startSlot.num}节 ${startSlot.start}`;
+    endEl.textContent = `结束：第${endSlot.num}节 ${endSlot.end}`;
+    durEl.textContent = `共 ${e - s + 1} 节`;
+
+    startInput.value = startSlot.start;
+    endInput.value = endSlot.end;
+  } else {
+    startEl.textContent = '起始：--';
+    endEl.textContent = '结束：--';
+    durEl.textContent = '共 0 节';
+    startInput.value = '';
+    endInput.value = '';
+  }
+}
+
+function saveCustomCourse(e) {
+  e.preventDefault();
+
+  const subject = document.getElementById('customSubject').value;
+  const content = document.getElementById('customContent').value;
+  const location = document.getElementById('customLocation').value;
+  const note = document.getElementById('customNote').value;
+  const startTime = document.getElementById('customStartPeriod').value;
+  const endTime = document.getElementById('customEndPeriod').value;
+
+  if (!startTime || !endTime) {
+    showToast('请先选择时间段');
+    return;
+  }
+
+  const coursesToAdd = [];
+
+  if (addMode === 'single') {
+    const date = document.getElementById('customDate').value;
+    if (!date) { showToast('请选择日期'); return; }
+    const d = new Date(date);
+    coursesToAdd.push({
+      id: 'custom_' + Date.now(),
+      date: date,
+      weekday: d.getDay(),
+      timeSlot: startTime + '-' + endTime,
+      timeRange: startTime + '-' + endTime,
+      subject,
+      content: content || note || '自定义计划',
+      teacher: '',
+      location: location || '',
+      type: '自定义',
+      group: 'all',
+      hours: ''
+    });
+  } else if (addMode === 'range') {
+    const start = document.getElementById('customDateStart').value;
+    const end = document.getElementById('customDateEnd').value;
+    if (!start || !end) { showToast('请选择日期范围'); return; }
+
+    let current = new Date(start);
+    const endDate = new Date(end);
+    let idCounter = 0;
+
+    while (current <= endDate) {
+      const dateStr = formatDateFull(current);
+      coursesToAdd.push({
+        id: 'custom_' + Date.now() + '_' + (idCounter++),
+        date: dateStr,
+        weekday: current.getDay(),
+        timeSlot: startTime + '-' + endTime,
+        timeRange: startTime + '-' + endTime,
+        subject,
+        content: content || note || '自定义计划',
+        teacher: '',
+        location: location || '',
+        type: '自定义',
+        group: 'all',
+        hours: ''
+      });
+      current.setDate(current.getDate() + 1);
+    }
+  } else if (addMode === 'weekly') {
+    if (selectedWeekdays.size === 0) { showToast('请选择星期'); return; }
+    const weekStart = document.getElementById('customWeekStart').value;
+    const weekEnd = document.getElementById('customWeekEnd').value;
+    if (!weekStart || !weekEnd) { showToast('请选择生效日期范围'); return; }
+
+    let current = new Date(weekStart);
+    const endDate = new Date(weekEnd);
+    let idCounter = 0;
+
+    while (current <= endDate) {
+      if (selectedWeekdays.has(current.getDay())) {
+        const dateStr = formatDateFull(current);
+        coursesToAdd.push({
+          id: 'custom_' + Date.now() + '_' + (idCounter++),
+          date: dateStr,
+          weekday: current.getDay(),
+          timeSlot: startTime + '-' + endTime,
+          timeRange: startTime + '-' + endTime,
+          subject,
+          content: content || note || '自定义计划',
+          teacher: '',
+          location: location || '',
+          type: '自定义',
+          group: 'all',
+          hours: ''
+        });
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  if (coursesToAdd.length === 0) {
+    showToast('没有匹配的日期');
+    return;
+  }
+
+  customCourses.push(...coursesToAdd);
+  localStorage.setItem('clinical8_custom', JSON.stringify(customCourses));
+  closeAddModal();
+  render();
+  showToast(`已添加 ${coursesToAdd.length} 条计划`);
+}
+
+function deleteCustomCourse(id) {
+  if (!confirm('确定删除这个计划吗？')) return;
+  customCourses = customCourses.filter(c => c.id !== id);
+  localStorage.setItem('clinical8_custom', JSON.stringify(customCourses));
+  render();
+  showToast('已删除');
+}
+
+// ===== 详情弹窗 =====
+function showDetail(course) {
+  document.getElementById('detailTitle').textContent = course.subject;
+  const content = document.getElementById('detailContent');
+  const dayNames = ['周日','周一','周二','周三','周四','周五','周六'];
+  const items = [];
+  if (course.type) items.push({ label: '类型', value: course.type });
+  if (course.date) items.push({ label: '日期', value: course.date + ' ' + dayNames[course.weekday || new Date(course.date).getDay()] });
+  if (course.timeRange) items.push({ label: '时间', value: course.timeRange });
+  if (course.content) items.push({ label: '内容', value: course.content });
+  if (course.location) items.push({ label: '地点', value: course.location });
+  if (course.teacher) items.push({ label: '教师', value: course.teacher });
+  if (course.hours) items.push({ label: '学时', value: course.hours });
+  if (course.group && course.group !== 'all') items.push({ label: '分组', value: course.group + '组' });
+
+  content.innerHTML = items.map(item => `
+    <div class="detail-item">
+      <div class="detail-label">${item.label}</div>
+      <div class="detail-value">${item.value}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('detailModal').classList.add('active');
+}
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+// ===== 工具函数 =====
+function formatDate(d) {
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+function formatDateFull(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate();
+}
+function timeToMinutes(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// 启动
+init();
+</script>
+</body>
+</html>
